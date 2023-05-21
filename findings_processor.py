@@ -2,10 +2,16 @@ import numpy as np
 from tqdm import tqdm
 import pandas as pd
 import warnings
+from sklearn.preprocessing import MultiLabelBinarizer
 from constants import *
 
 
 warnings.simplefilter("ignore")
+
+
+def fetch_encoded_labels(labels):
+    encoder = MultiLabelBinarizer()
+    return encoder.fit_transform(labels)
 
 
 def build_processed_data(filepath):
@@ -21,8 +27,9 @@ def build_processed_data(filepath):
 
     columns = [UNPROCESSED_COLUMN_NAME_IMAGE_ID, PROCESSED_COLUMN_NAME_CLASS_NAMES, PROCESSED_COLUMN_NAME_CLASS_IDS]
     columns.extend(class_detection_zones)
-    prepared_image_data = pd.DataFrame(columns=columns)
+    prepared_image_data = pd.DataFrame(columns=columns, dtype="object")
     grouped_df = raw_data.groupby(UNPROCESSED_COLUMN_NAME_IMAGE_ID)
+
     for im_id, group in tqdm(grouped_df):
         row_data = [im_id]
         row_data.extend([np.nan] * (len(columns) - 1))
@@ -41,11 +48,7 @@ def build_processed_data(filepath):
                     new_row[anomaly + "_" + UNPROCESSED_COLUMN_NAME_X_MAX] = row[UNPROCESSED_COLUMN_NAME_X_MAX]
                     new_row[anomaly + "_" + UNPROCESSED_COLUMN_NAME_Y_MAX] = row[UNPROCESSED_COLUMN_NAME_Y_MAX]
         new_row[PROCESSED_COLUMN_NAME_CLASS_NAMES] = ",".join(str(x) for x in anomaly_list)
-        new_row[PROCESSED_COLUMN_NAME_CLASS_IDS] = ",".join(str(x) for x in anomaly_id)
+        new_row[PROCESSED_COLUMN_NAME_CLASS_IDS] = anomaly_id
         prepared_image_data = prepared_image_data.append(new_row, ignore_index=True)
     prepared_image_data = prepared_image_data.fillna(-1)
     return prepared_image_data
-
-
-def save_dataframe(dframe, newpath):
-    dframe.to_csv(newpath, index=False)
