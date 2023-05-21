@@ -1,0 +1,5 @@
+# Ignore all files
+*
+
+# Include specific file types
+!*.py
