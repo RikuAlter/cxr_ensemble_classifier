@@ -26,6 +26,7 @@ class DataArranger():
             label = ast.literal_eval(label)
             for x in label:
                 class_count[x] = class_count[x] + 1
+        reutrn class_count
 
     def get_median(self, counts):
         class_count = len(counts)
@@ -43,20 +44,20 @@ class DataArranger():
         for label in labels:
             weights = [0]*n_classes
             for x in label:
-                weights[x] = [1/len(label)]
+                weights[x] = 1/len(label)
             class_weights.append(weights)
         return class_weights
 
     def update_class_count(self, class_count, new_labels):
-        for label in labels:
+        for label in new_labels:
             for x in label:
                 class_count[x] = class_count[x] + 1
         return class_count
 
     def get_class_indices(self, labels, n_classes):
         index_list = []
-        for n_class in n_classes:
-            class_indices = [x for x in labels if n_class in x]
+        for n_class in len(n_classes):
+            class_indices = [x for x, label in enumerate(labels) if n_class in label]
             index_list.append(class_indices)
         return index_list
 
@@ -105,4 +106,4 @@ class DataArranger():
 
                 class_count = self.update_class_count(class_count, augmented_labels)
                 median_drift = self.get_median_drift(class_count, median)
-        return augmented_images, augmented_labels             
+        return augmented_images, augmented_labels
