@@ -2,6 +2,7 @@ from sklearn.model_selection import StratifiedShuffleSplit
 from keras.preprocessing.image import ImageDataGenerator
 from constants import *
 import ast
+import random
 
 class DataArranger():
 
@@ -93,7 +94,7 @@ class DataArranger():
                     genuine_sample_ids = [x for x, weight in enumerate(class_weights) if lower_weight_threshold <= weight[label] <= upper_weigth_threshold]
 
                 if(len(genuine_sample_ids) == 0):
-                    genuine_sample_ids = n_class_ids
+                    genuine_sample_ids = random.sample(n_class_ids,min_genuine_threshold)
 
                 x_label = x[genuine_sample_ids]
                 y_label = y[genuine_sample_ids]
