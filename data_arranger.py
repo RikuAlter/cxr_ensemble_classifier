@@ -44,7 +44,7 @@ class DataArranger():
         for label in labels:
             weights = [0]*n_classes
             for x in label:
-                weights[x] = 1/len(label)
+                weights[x] = 1/len(label) if len(label) > 0 else 0
             class_weights.append(weights)
         return class_weights
 
@@ -56,7 +56,7 @@ class DataArranger():
 
     def get_class_indices(self, labels, n_classes):
         index_list = []
-        for n_class in len(n_classes):
+        for n_class in range(n_classes):
             class_indices = [x for x, label in enumerate(labels) if n_class in label]
             index_list.append(class_indices)
         return index_list
@@ -77,7 +77,7 @@ class DataArranger():
             genuine_sample_ids = []
             if median_drift[label] < 0:
                 drift_strength = median_drift[label]/max_drift
-                required_samples = median - median_drift[label]
+                required_samples = int(median - median_drift[label])
 
                 if drift_strength >= 0.6:
                     weight_threshold = 0.3
