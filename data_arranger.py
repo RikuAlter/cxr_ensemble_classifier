@@ -26,7 +26,7 @@ class DataArranger():
             label = ast.literal_eval(label)
             for x in label:
                 class_count[x] = class_count[x] + 1
-        reutrn class_count
+        return class_count
 
     def get_median(self, counts):
         class_count = len(counts)
