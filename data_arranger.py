@@ -24,7 +24,6 @@ class DataArranger():
     def get_class_count(self, n_classes, labels):
         class_count = [0]*n_classes
         for label in labels:
-            label = ast.literal_eval(label)
             for x in label:
                 class_count[x] = class_count[x] + 1
         return class_count
