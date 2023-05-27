@@ -1,4 +1,5 @@
 import numpy as np
+import ast
 from tqdm import tqdm
 import pandas as pd
 import warnings
@@ -13,6 +14,9 @@ def fetch_encoded_labels(labels):
     encoder = MultiLabelBinarizer()
     return encoder.fit_transform(labels)
 
+def transform_label_data(labels):
+    transformed_labels = [ast.literal_eval(label) for label in labels]
+    return transformed_labels
 
 def build_processed_data(filepath):
     raw_data = pd.read_csv(filepath)

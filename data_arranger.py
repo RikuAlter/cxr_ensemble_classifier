@@ -27,7 +27,6 @@ class DataArranger():
     def get_class_count(self, n_classes, labels):
         class_count = [0]*n_classes
         for label in labels:
-            label = ast.literal_eval(label)
             for x in label:
                 class_count[x] = class_count[x] + 1
         return class_count
@@ -36,7 +35,7 @@ class DataArranger():
         class_count = len(counts)
         mid_id = int(class_count / 2)
         ordered_count = sorted(counts)
-        return ordered_count[mid_id] if class_count % 2 == 0 else int((ordered_count[mid_id] + ordered_count[mid_id+1])/2)
+        return ordered_count[mid_id] if class_count % 2 != 0 else int((ordered_count[mid_id] + ordered_count[mid_id+1])/2)
 
     def get_median_drift(self, count, median):
         median_drift = []
@@ -59,10 +58,10 @@ class DataArranger():
         return class_count
 
     def get_class_indices(self, labels, n_classes):
-        index_list = []
-        for n_class in range(n_classes):
-            class_indices = [x for x, label in enumerate(labels) if n_class in label]
-            index_list.append(class_indices)
+        index_list = [[] for _ in range(n_classes)]
+        for _id, label in enumerate(labels):
+            for x in label:
+                index_list[x].append(_id)
         return index_list
 
     def get_augmented_data(self, x, y, n_classes, min_genuine_threshold):
