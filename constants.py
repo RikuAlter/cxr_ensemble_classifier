@@ -1,3 +1,6 @@
+#Error Codes
+AUGMENTATION_ERROR_MISSING_GENUINE_IMAGES = "Missing genuine images to create augments of."
+
 #Column names from original data frame
 UNPROCESSED_COLUMN_NAME_IMAGE_ID = "image_id"
 UNPROCESSED_COLUMN_NAME_CLASS_ID = "class_id"

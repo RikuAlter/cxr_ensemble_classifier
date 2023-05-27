@@ -1,8 +1,10 @@
 import ast
 import random
+import logging
 
 from keras.preprocessing.image import ImageDataGenerator
 from sklearn.model_selection import StratifiedShuffleSplit
+from detailed_exceptions import DetailedException
 
 from constants import *
 
@@ -10,7 +12,6 @@ from constants import *
 class DataArranger():
 
     def __init__(self, splitconfig, augmentconfig):
-        self.splitconfig = splitconfig
         self.splitter = StratifiedShuffleSplit(n_splits=splitconfig.get(SPLITTER_SPLIT_COUNT),
                                                test_size=splitconfig.get(SPLITTER_TEST_SIZE),
                                                random_state=splitconfig.get(SPLITTER_RANDOM_STATE))
@@ -45,9 +46,9 @@ class DataArranger():
     def get_class_weight(self, labels, n_classes):
         class_weights = []
         for label in labels:
-            weights = [0]*n_classes
+            weights = [-1]*n_classes
             for x in label:
-                weights[x] = 1/len(label) if len(label) > 0 else 0
+                weights[x] = 1/len(label) if len(label) > 0 else -1
             class_weights.append(weights)
         return class_weights
 
@@ -78,9 +79,10 @@ class DataArranger():
             max_drift = max(median_drift)
             n_class_ids = class_ids[label]
             genuine_sample_ids = []
-            if median_drift[label] < 0:
-                drift_strength = median_drift[label]/max_drift
-                required_samples = int(median - median_drift[label])
+            current_drift = median_drift[label]
+            if current_drift > 0:
+                drift_strength = current_drift/max_drift
+                required_samples = current_drift
 
                 if drift_strength >= 0.6:
                     weight_threshold = 0.3
@@ -90,13 +92,19 @@ class DataArranger():
                     weight_threshold = 1.0
                 genuine_sample_ids = [x for x, weight in enumerate(class_weights) if (weight_threshold-0.3) <= weight[label] <= weight_threshold]
 
-                if len(genuine_sample_ids) < min_genuine_threshold:
-                    upper_weigth_threshold = min(min(x[label] for x in class_weights if x[label] > weight_threshold) + 0.2, 1)
-                    lower_weight_threshold = min(0, min(x[label] for x in class_weights if x[label] < (weight_threshold-0.3)) - 0.2)
-                    genuine_sample_ids = [x for x, weight in enumerate(class_weights) if lower_weight_threshold <= weight[label] <= upper_weigth_threshold]
+                try:
+                    if(len(genuine_sample_ids) < min_genuine_threshold and len(n_class_ids) > 0):
+                        logging.debug("Missing enough genuine IDs with required class weights using all genuine IDs for this class")
+                        remaining_genuine_samples = min_genuine_threshold - len(genuine_sample_ids)
+                        if remaining_genuine_samples < len(n_class_ids):
+                            genuine_sample_ids = list(set(genuine_sample_ids).union(set(random.sample(n_class_ids,remaining_genuine_samples))))
+                        else:
+                            genuine_sample_ids = list(set(genuine_sample_ids).union(set(n_class_ids)))
+                    else:
+                        raise DetailedException(AUGMENTATION_ERROR_MISSING_GENUINE_IMAGES)
 
-                if(len(genuine_sample_ids) == 0):
-                    genuine_sample_ids = random.sample(n_class_ids,min_genuine_threshold) if min_genuine_threshold < len(n_class_ids) else n_class_ids
+                except DetailedException as e:
+                    logging.error(e.message)
 
                 x_label = x[genuine_sample_ids]
                 y_label = y[genuine_sample_ids]
