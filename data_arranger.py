@@ -80,7 +80,7 @@ class DataArranger():
             n_class_ids = class_ids[label]
             genuine_sample_ids = []
             current_drift = median_drift[label]
-            if current_drift > 0:
+            if 0 < current_drift < median:
                 drift_strength = current_drift/max_drift
                 required_samples = current_drift
 
@@ -109,8 +109,15 @@ class DataArranger():
                 x_label = x[genuine_sample_ids]
                 y_label = y[genuine_sample_ids]
 
-                augmented_data = self.augmentor.flow(x_label, y_label, batch_size=required_samples, shuffle=True)
-                n_label_augmented_images, n_label_augmented_labels = augmented_data.next()
+                n_label_augmented_images = []
+                n_label_augmented_labels = []
+
+                while len(n_label_augmented_labels) < required_samples:
+
+                    augmented_data = self.augmentor.flow(x_label, y_label, batch_size=required_samples, shuffle=True)
+                    new_images, new_labels = augmented_data.next()
+                    n_label_augmented_images.extend(new_images)
+                    n_label_augmented_labels.extend(new_labels)
 
                 augmented_images.extend(n_label_augmented_images)
                 augmented_labels.extend(n_label_augmented_labels)
