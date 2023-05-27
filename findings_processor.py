@@ -27,7 +27,7 @@ def build_processed_data(filepath):
 
     columns = [UNPROCESSED_COLUMN_NAME_IMAGE_ID, PROCESSED_COLUMN_NAME_CLASS_NAMES, PROCESSED_COLUMN_NAME_CLASS_IDS]
     columns.extend(class_detection_zones)
-    prepared_image_data = pd.DataFrame(columns=columns, dtype="object")
+    prepared_image_data = pd.DataFrame(columns=columns)
     grouped_df = raw_data.groupby(UNPROCESSED_COLUMN_NAME_IMAGE_ID)
 
     for im_id, group in tqdm(grouped_df):
