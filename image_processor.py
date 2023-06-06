@@ -16,7 +16,7 @@ from skimage.restoration import denoise_wavelet, estimate_sigma
 
 class GenericDenoiser:
 
-    def __init__(self, imreader):
+    def __init__(self, imreader=None):
         self.imreader = ImageReader() if imreader == None else imreader
 
     def execute(self, images, denoiseMethod, sigma_psd = 0, h=10, templateWindowSize=7, searchWindowSize=21,
@@ -108,6 +108,22 @@ class WaveletDenoiser(GenericDenoiser):
                                          wavelet = denoise_param.get(DENOISE_PARAM_NLM_WAVELET_THRESHOLD))
         return denoised_image
 
+
+class ImageEnhancer:
+
+    def __init__(self, clipLimit = 2, tileGridSize=(5,5)):
+        self.clahe = cv2.createCLAHE(clipLimit = clipLimit, tileGridSize = tileGridSize)
+
+    def execute(self, images):
+
+        enhanced_images = []
+        images = (images*255).astype("uint8")
+
+        for image in images:
+            enhanced_images.append(self.clahe.apply(image))
+
+        return np.asarray(enhanced_images)
+    
 
 def expand_channel_resize_image(images, dims, interpolationFlag, expand_dims=False):
     resized_images = []
