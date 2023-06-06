@@ -19,6 +19,26 @@ FILE_TYPE_DICOM = ".dicom"
 FILE_TYPE_PNG = ".png"
 FINDING_NO_FINDING = "No finding"
 
+#Image Processor Constants
+INTER_SPLINE = "Spline"
+WAVELET_THRESHOLD_METHOD_BAYESHRINK = "BayesShrink"
+WAVELET_THRESHOLD_METHOD_VISUSHRINK = "VisuShrink"
+WAVELET_TYPE_DB1 = "db1"
+WAVELET_TYPE_DB2 = "db2"
+WAVELET_TYPE_HAAR = "haar"
+WAVELET_TYPE_SYM2 = "sym2"
+WAVELET_TYPE_COIFI = "coifi"
+DENOISE_METHOD_BM3D = "bm3d"
+DENOISE_METHOD_NLM = "nlm"
+DENOISE_METHOD_WAVELET = "wavelet"
+DENOISE_PARAM_SIGMA_PSD = "sigma_psd"
+DENOISE_PARAM_NLM_H = "nlm_h"
+DENOISE_PARAM_NLM_TEMPLATE_WINDOW_SIZE = "templateWindowSize"
+DENOISE_PARAM_NLM_SEARCH_WINDOW_SIZE = "searchWindowSize"
+DENOISE_PARAM_NLM_WAVELET_TYPE = "wavelet"
+DENOISE_PARAM_NLM_WAVELET_THRESHOLD = "threshold"
+
+
 #Data Arranger constants
 SPLITTER_SPLIT_COUNT = "n_splits"
 SPLITTER_TEST_SIZE = "test_size"
@@ -29,3 +49,6 @@ AUGMENTOR_HEIGHT_SHIFT = "height_shift_range"
 AUGMENTOR_SHEAR_RANGE = "shear_range"
 AUGMENTOR_ZOOM_RANGE = "zoom_range"
 AUGMENTOR_FILL_MODE = "fill_mode"
+
+#Anomaly Classes
+NO_ANOMALY = "No finding"
