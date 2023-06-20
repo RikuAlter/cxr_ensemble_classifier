@@ -27,7 +27,7 @@ WAVELET_TYPE_DB1 = "db1"
 WAVELET_TYPE_DB2 = "db2"
 WAVELET_TYPE_HAAR = "haar"
 WAVELET_TYPE_SYM2 = "sym2"
-WAVELET_TYPE_COIFI = "coifi"
+WAVELET_TYPE_SYM3 = "sym3"
 DENOISE_METHOD_BM3D = "bm3d"
 DENOISE_METHOD_NLM = "nlm"
 DENOISE_METHOD_WAVELET = "wavelet"
@@ -52,3 +52,8 @@ AUGMENTOR_FILL_MODE = "fill_mode"
 
 #Anomaly Classes
 NO_ANOMALY = "No finding"
+
+#AWS Constants
+S3 = "s3"
+S3_BUCKET = "s3_bucket"
+S3_IMAGE_PREFIX = "s3_image_prefix"

@@ -3,13 +3,13 @@ import numpy as np
 import random
 from image_reader import ImageReader
 from constants import FILE_TYPE_DICOM, INTER_SPLINE, WAVELET_THRESHOLD_METHOD_BAYESHRINK, \
-    UNPROCESSED_COLUMN_NAME_IMAGE_ID, WAVELET_TYPE_DB1, DENOISE_METHOD_WAVELET, DENOISE_METHOD_NLM, DENOISE_METHOD_BM3D, \
-    DENOISE_PARAM_NLM_H, DENOISE_PARAM_SIGMA_PSD, DENOISE_PARAM_NLM_WAVELET_THRESHOLD, DENOISE_PARAM_NLM_WAVELET_TYPE, \
+    UNPROCESSED_COLUMN_NAME_IMAGE_ID, WAVELET_TYPE_DB1, WAVELET_TYPE_SYM3, DENOISE_METHOD_WAVELET, DENOISE_METHOD_NLM, \
+    DENOISE_METHOD_BM3D, DENOISE_PARAM_NLM_H, DENOISE_PARAM_SIGMA_PSD, DENOISE_PARAM_NLM_WAVELET_THRESHOLD, DENOISE_PARAM_NLM_WAVELET_TYPE, \
     DENOISE_PARAM_NLM_SEARCH_WINDOW_SIZE, DENOISE_PARAM_NLM_TEMPLATE_WINDOW_SIZE
 from tqdm import tqdm
 from numpy.fft import fft2, fftshift
 from scipy.ndimage import zoom
-from pybm3d.bm3d import bm3d
+import bm3d
 from image_reader import ImageReader
 from skimage.restoration import denoise_wavelet, estimate_sigma
 
@@ -19,8 +19,8 @@ class GenericDenoiser:
     def __init__(self, imreader=None):
         self.imreader = ImageReader() if imreader == None else imreader
 
-    def execute(self, images, denoiseMethod, sigma_psd = 0, h=10, templateWindowSize=7, searchWindowSize=21,
-                wavelet=WAVELET_TYPE_DB1, thresholdMethod=WAVELET_THRESHOLD_METHOD_BAYESHRINK):
+    def execute(self, images, denoiseMethod=DENOISE_METHOD_WAVELET, sigma_psd = 0, h=10, templateWindowSize=7, searchWindowSize=21,
+                wavelet=WAVELET_TYPE_SYM3, thresholdMethod=WAVELET_THRESHOLD_METHOD_BAYESHRINK):
         denoisers = {
             DENOISE_METHOD_BM3D: BM3DDenoiser(),
             DENOISE_METHOD_NLM: ClassicNLMDenoiser(),
@@ -45,14 +45,21 @@ class GenericDenoiser:
 
         return np.asarray(denoised_images)
 
+    def convert_to_uint8(self, image):
+        return (image*255).astype("uint8")
+
 
 class BM3DDenoiser(GenericDenoiser):
 
-    def execute(self, image, denoise_params):
-        downsized_image = bm3d(image, sigma_psd = denoise_params.get(DENOISE_PARAM_SIGMA_PSD))
-        return downsized_image
+    def __init__(self, dataframe = None):
+        super(BM3DDenoiser, self).__init__()
+        self.dataframe = dataframe
 
-    def sigma_estimator(self, imageBasePath, downsize_dim, interpolationFlag, batch_size = 100, epoch = 20):
+    def execute(self, image, denoise_params):
+        denoised_image = bm3d.bm3d(image, sigma_psd = denoise_params.get(DENOISE_PARAM_SIGMA_PSD))
+        return denoised_image
+
+    def sigma_estimator(self, imageBasePath, filetype, downsize_dim, interpolationFlag, batch_size = 100, epoch = 20):
 
         total_sample_size = len(self.dataframe)
 
@@ -61,9 +68,9 @@ class BM3DDenoiser(GenericDenoiser):
             sampled_set = self.dataframe.iloc[random.sample(range(total_sample_size), current_batch_size)]
             sampled_image_ids = sampled_set[UNPROCESSED_COLUMN_NAME_IMAGE_ID]
 
-            sampled_images = self.imageReader.execute(imageBasePath, sampled_image_ids, FILE_TYPE_DICOM)
+            sampled_images = self.imreader.execute(imageBasePath, sampled_image_ids, filetype)
 
-            nps_mean_sum = 0
+            sigma_psd_sum = 0
 
             for image in sampled_images:
                 height, width = image.shape
@@ -77,35 +84,32 @@ class BM3DDenoiser(GenericDenoiser):
 
                 downscaled_image = (downscaled_image - np.min(downscaled_image))/(np.max(downscaled_image) - np.min(downscaled_image))
                 image_fft = fftshift(fft2(downscaled_image))
+                image_fft = (image_fft - np.min(image_fft))/(np.max(image_fft) - np.min(image_fft))
                 nps = np.abs(image_fft) ** 2
 
-                mean_nps  = np.mean(nps)
-                nps_mean_sum += mean_nps
+                mean_nps = np.mean(nps)
+                sigma_psd = np.sqrt(mean_nps)
+                sigma_psd_sum += sigma_psd
 
-            mean_nps_mean = nps_mean_sum/current_batch_size
-            sigma_psd = np.sqrt(mean_nps_mean)
-            print("Epoch :", i+1, "For batch size: ", current_batch_size, "Sigma PSD: ", sigma_psd)
+            print("Epoch :", i+1, "For batch size: ", current_batch_size, "Sigma PSD: ", sigma_psd_sum/current_batch_size)
 
 
 class ClassicNLMDenoiser(GenericDenoiser):
 
     def execute(self, image, denoise_param):
-        image = convert_to_uint8(image)
+        image = super().convert_to_uint8(image)
         denoised_image = cv2.fastNlMeansDenoising(image, None, h=denoise_param.get(DENOISE_PARAM_NLM_H),
                                                   templateWindowSize=denoise_param.get(DENOISE_PARAM_NLM_TEMPLATE_WINDOW_SIZE),
                                                   searchWindowSize=denoise_param.get(DENOISE_PARAM_NLM_SEARCH_WINDOW_SIZE))
         denoised_image = self.imreader.normalize_image(denoised_image)
         return denoised_image
 
-    def convert_to_uint8(self, image):
-        return (image*255).astype("uint8")
-
 
 class WaveletDenoiser(GenericDenoiser):
 
     def execute(self, image, denoise_param):
-        denoised_image = denoise_wavelet(image, method = denoise_param.get(DENOISE_PARAM_NLM_WAVELET_TYPE),
-                                         wavelet = denoise_param.get(DENOISE_PARAM_NLM_WAVELET_THRESHOLD))
+        denoised_image = denoise_wavelet(image, method = denoise_param.get(DENOISE_PARAM_NLM_WAVELET_THRESHOLD),
+                                         wavelet = denoise_param.get(DENOISE_PARAM_NLM_WAVELET_TYPE))
         return denoised_image
 
 
@@ -117,13 +121,13 @@ class ImageEnhancer:
     def execute(self, images):
 
         enhanced_images = []
-        images = (images*255).astype("uint8")
 
         for image in images:
-            enhanced_images.append(self.clahe.apply(image))
+            gray_image = (image*255).astype("uint8")
+            enhanced_images.append(self.clahe.apply(gray_image))
 
         return np.asarray(enhanced_images)
-    
+
 
 def expand_channel_resize_image(images, dims, interpolationFlag, expand_dims=False):
     resized_images = []
