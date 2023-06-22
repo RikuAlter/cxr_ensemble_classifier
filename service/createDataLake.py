@@ -23,7 +23,7 @@ from pipelines.pipelines import ImageReaderPipeline, ProcessImagePipeline, Uploa
 from constants.constants import *
 
 
-def orchestrate_data_lake_create(sourceIdFile, imageSource, idColumn, start_index, end_index):
+def orchestrate_data_lake_create(s3Config, sourceIdFile, imageSource, idColumn, start_index, end_index, batch_size=20):
     """
 
     Args:
@@ -32,6 +32,7 @@ def orchestrate_data_lake_create(sourceIdFile, imageSource, idColumn, start_inde
         idColumn: String, must match the column name representing the image IDs in sourceIDFile
         start_index: Integer, Starting index for the image ids to upload, image ids obtained from sourceIdFile
         end_index: Integer, Ending index for the same, if None provided
+        batch_size: Integer, default = 20
 
         Regarding denoising of the images:
             Patch based NLM was chosen with patch size of 15 and intermediary patch distance of 3 with H=0.2
@@ -47,11 +48,20 @@ def orchestrate_data_lake_create(sourceIdFile, imageSource, idColumn, start_inde
         DENOISE_PARAM_PATCH_NLM_PATCH_DISTANCE: 3
     }
 
-    idList = pd.read_csv(sourceIdFile)[start_index:end_index]
-    images = ImageReaderPipeline(filetype=FILE_TYPE_DICOM, source=imageSource, ids=idList[idColumn]).execute()
-    images = ProcessImagePipeline(denoise_params=denoiseParams).execute(images)
-    for image in images: save_image("dataLake", image)
-    UploadPipeline().execute(source="dataLake", ids=idList, filetype=FILE_TYPE_PNG)
+    idList = pd.read_csv(sourceIdFile)[idColumn]
+    idList = idList[start_index:end_index].values.tolist()
+    imageReaderPipe = ImageReaderPipeline(filetype=FILE_TYPE_DICOM, source=imageSource)
+    imageProcessPipe = ProcessImagePipeline(denoise_params=denoiseParams)
+    imageUploadPipe = UploadPipeline(s3Config=s3Config)
+
+    for batch_start in range(0, len(idList), batch_size):
+        subList = idList[batch_start:batch_start + batch_size]
+
+        images = imageReaderPipe.execute(subList)
+        images = imageProcessPipe.execute(images, resizeDimension=(600, 600))
+        for _id, image in enumerate(images):
+            save_image(os.path.join("..", "dataLake", subList[_id] + FILE_TYPE_PNG), image)
+        imageUploadPipe.execute(source=os.path.join("..", "dataLake"), ids=subList, filetype=FILE_TYPE_PNG)
 
 
 def save_image(path, image):
@@ -61,11 +71,13 @@ def save_image(path, image):
     cv2.imwrite(path, image)
 
 
-id_source_file = os.path.join(".", "processed_label_data.csv")
-image_source = "train"
-id_column = UNPROCESSED_COLUMN_NAME_IMAGE_ID
-start_id = 0
-end_id = 10
-
-orchestrate_data_lake_create(sourceIdFile=id_source_file, imageSource=image_source, idColumn=id_column,
-                             start_index=start_id, end_index=end_id)
+# id_source_file = os.path.join(".", "processed_label_data.csv")
+# image_source = os.path.join(".", "train")
+# id_column = UNPROCESSED_COLUMN_NAME_IMAGE_ID
+# start_id = 0
+# end_id = 2
+# s3Config = os.path.join(".", "config", "aws_config.properties")
+#
+# orchestrate_data_lake_create(s3Config=s3Config, sourceIdFile=id_source_file,
+#                              imageSource=image_source, idColumn=id_column,
+#                              start_index=start_id, end_index=end_id)

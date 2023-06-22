@@ -1,12 +1,13 @@
 import configparser
 import logging
 import os
+import cv2
 
 import boto3
 from tqdm import tqdm
 
 from constants import constants
-from preprocessors.image_processor import GenericDenoiser, ImageEnhancer
+from preprocessors.image_processor import GenericDenoiser, ImageEnhancer, resize_with_ratio
 from preprocessors.image_reader import ImageReader
 
 
@@ -35,13 +36,12 @@ logger.addHandler(stream_handler)
 
 class ImageReaderPipeline:
 
-    def __init__(self, filetype, source, ids):
+    def __init__(self, filetype, source):
         self.filetype = filetype
         self.source = source
-        self.ids = ids
 
-    def execute(self):
-        images = ImageReader().execute(basepath=self.source, batch=self.ids, filetype=self.filetype)
+    def execute(self, ids):
+        images = ImageReader().execute(basepath=self.source, batch=ids, filetype=self.filetype)
         logger.info("Completed reading image batch!")
         return images
 
@@ -51,19 +51,21 @@ class ProcessImagePipeline:
     def __init__(self, denoise_params):
         self.denoise_params = denoise_params
 
-    def execute(self, images):
+    def execute(self, images, resizeDimension=(600, 600)):
         logger.info("Starting processing of image batch..")
         images = GenericDenoiser().execute(images, denoiseParams=self.denoise_params)
         images = ImageEnhancer().execute(images)
+        for _id in range(len(images)):
+            images[_id] = resize_with_ratio(images[_id], resizeDimension, cv2.INTER_AREA)
         logger.info("Completed processing image batch!")
         return images
 
 
 class UploadPipeline:
 
-    def __init__(self, iamProfile="default"):
+    def __init__(self, s3Config, iamProfile="default"):
         self.s3Config = configparser.ConfigParser()
-        self.s3Config.read(os.path.join("..", "config", "../config/aws_config.properties"))
+        self.s3Config.read(s3Config)
         self.s3Client = boto3.Session(profile_name=iamProfile).client(constants.S3)
 
     def execute(self, source, ids, filetype):

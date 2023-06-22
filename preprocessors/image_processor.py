@@ -5,7 +5,8 @@ import cv2
 import numpy as np
 from numpy.fft import fft2, fftshift
 from scipy.ndimage import zoom
-from skimage.restoration import denoise_wavelet, estimate_sigma
+from skimage.restoration import denoise_wavelet
+from skimage.restoration import denoise_nl_means, estimate_sigma
 from tqdm import tqdm
 
 from constants.constants import *
