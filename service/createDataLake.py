@@ -71,13 +71,13 @@ def save_image(path, image):
     cv2.imwrite(path, image)
 
 
-# id_source_file = os.path.join(".", "processed_label_data.csv")
-# image_source = os.path.join(".", "train")
-# id_column = UNPROCESSED_COLUMN_NAME_IMAGE_ID
-# start_id = 0
-# end_id = 2
-# s3Config = os.path.join(".", "config", "aws_config.properties")
-#
-# orchestrate_data_lake_create(s3Config=s3Config, sourceIdFile=id_source_file,
-#                              imageSource=image_source, idColumn=id_column,
-#                              start_index=start_id, end_index=end_id)
+id_source_file = os.path.join("..", "processed_label_data.csv")
+image_source = os.path.join("..", "train")
+id_column = UNPROCESSED_COLUMN_NAME_IMAGE_ID
+start_id = int(sys.argv[1])
+end_id = int(sys.argv[2])
+s3Config = os.path.join("..", "config", "aws_config.properties")
+
+orchestrate_data_lake_create(s3Config=s3Config, sourceIdFile=id_source_file,
+                             imageSource=image_source, idColumn=id_column,
+                             start_index=start_id, end_index=end_id)
