@@ -3,3 +3,8 @@
 
 # Include specific file types
 !*.py
+!constants
+!exceptions
+!pipelines
+!preprocessors
+!service
