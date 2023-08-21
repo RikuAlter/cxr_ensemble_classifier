@@ -23,7 +23,7 @@ from pipelines.pipelines import ImageReaderPipeline, ProcessImagePipeline, Uploa
 from constants.constants import *
 
 
-def orchestrate_data_lake_create(s3Config, sourceIdFile, imageSource, idColumn, start_index, end_index, batch_size=20):
+def orchestrate_data_lake_create(s3Config, sourceIdFile, imageSource, idColumn, start_index, end_index, batch_size=50):
     """
 
     Args:

@@ -3,6 +3,7 @@
 
 # Include specific file types
 !*.py
+!*.ipynb
 !constants
 !exceptions
 !pipelines
